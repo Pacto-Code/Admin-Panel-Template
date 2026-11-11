@@ -8,16 +8,19 @@
     "build": "turbo run build",
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "modules:sync": "tsx tools/modules-sync/src/run.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@platform/core": "workspace:*",
     "@swc/core": "^1.16.22",
     "@types/node": "^26.6.6",
     "@types/supertest": "^7.2.1",
     "eslint": "^10.14.0",
     "supertest": "^7.3.2",
     "tsup": "^9.0.0",
+    "tsx": "^4.20.0",
     "turbo": "^2.11.11",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.2",
