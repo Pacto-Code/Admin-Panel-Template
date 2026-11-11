@@ -59,7 +59,9 @@ packages/
   core/           module contract, permission and event types, registry
   config/         typed config schema, environment profiles, loader
   db/             database client, migration runner, shared column helpers
-  ui/             shared components: data table, forms, layout, feedback
+  server/         shared NestJS infrastructure: guards, mutation runner, events, jobs
+  ui/             presentational components: data table, forms, layout, feedback
+  admin/          runtime kit for module screens: API client, session, permissions
   api-client/     typed client generated from the API's OpenAPI spec
 modules/
   auth/           staff accounts, sessions, MFA, invites, password reset
@@ -77,10 +79,12 @@ Each unit has one job:
 | `packages/core` | Defines what a module is and holds the registry | nothing |
 | `packages/config` | Loads and validates configuration | `core` |
 | `packages/db` | Connects to PostgreSQL and runs module migrations | `config` |
+| `packages/server` | HTTP conventions, route guards, mutation runner, outbox events, jobs, test helpers | `core`, `config`, `db` |
 | `packages/ui` | Presentational building blocks | nothing project-specific |
+| `packages/admin` | API client, session and permission hooks, list and form helpers for module screens | `core`, `ui`, `api-client` |
 | `packages/api-client` | Typed HTTP client for the admin (and later storefronts) | generated from `apps/api` |
-| `apps/api` | Hosts the enabled modules' API parts | `core`, `config`, `db`, modules |
-| `apps/admin` | Hosts the enabled modules' screens | `core`, `ui`, `api-client`, modules |
+| `apps/api` | Hosts the enabled modules' API parts | `core`, `config`, `db`, `server`, modules |
+| `apps/admin` | Hosts the enabled modules' screens | `core`, `ui`, `admin`, modules |
 
 ## 3. The module contract
 
@@ -113,6 +117,7 @@ export interface ModuleManifest {
   dependsOn?: string[];          // ids of modules that must also be enabled
   permissions: PermissionDef[];  // e.g. { key: "audit.entry.read", label }
   nav?: NavItem[];               // sidebar entries, each tied to a permission
+  options?: ZodObject;           // schema for this module's entry in store.config.ts
   settings?: ZodObject;          // schema rendered as a form in Settings
   switches?: SwitchDef[];        // runtime on/off toggles for sub-features
   events?: { emits: string[]; handles: string[] };
@@ -276,7 +281,7 @@ Later specs add payment, shipping, SMS, search and tax the same way.
 | `pnpm modules:sync` | Validates `store.config.ts` and regenerates module imports |
 | `pnpm db:migrate` | Applies pending migrations for enabled modules |
 | `pnpm seed --profile <demo\|development>` | Loads sample data. Refuses to run when `APP_ENV=production` |
-| `pnpm setup` | Creates the first owner account for a real install. Loads no sample data |
+| `pnpm owner:create` | Creates the first owner account for a real install. Loads no sample data. (`pnpm setup` is reserved by pnpm itself) |
 | `pnpm create:module <id>` | Scaffolds a new module folder |
 | `pnpm modules:purge <id>` | Drops a disabled module's tables after confirmation |
 
@@ -322,10 +327,12 @@ Staff accounts only.
 - Append-only. No update or delete endpoint exists.
 - Each entry records actor, action, record type and id, before and after
   values, IP address, user agent, timestamp and request id.
-- Written automatically for every change made through a module service, via
-  a shared decorator, and for sign-in, failed sign-in, sign-out, MFA
-  changes, invites and role changes. Module authors do not hand-write
-  audit calls.
+- Every change goes through a shared mutation runner that wraps the
+  database transaction and records the before and after values, so module
+  authors do not hand-write audit calls. Sign-in, failed sign-in, sign-out,
+  MFA changes, invites and role changes are recorded too.
+- A check on every staff route fails, outside production, any successful
+  change that wrote no audit entry, unless the route is explicitly exempt.
 - Fields marked sensitive in a module's schema (password hashes, tokens,
   secrets) are redacted before the entry is stored.
 - A viewer screen filters by person, action, record and date range.
@@ -423,7 +430,7 @@ Implementation is test-first.
 | Layer | Tool | Covers |
 |---|---|---|
 | Unit | Vitest | Services, config validation, permission resolution, registry and dependency checks |
-| API | Vitest with PostgreSQL in a container | Every endpoint: success, validation failure, permission denied |
+| API | Vitest against a real PostgreSQL 16 (a service container in CI), fresh database per test file | Every endpoint: success, validation failure, permission denied |
 | Module contract | Shared suite run against every module | Valid manifest; every route has a permission or is public; migrations apply on a clean database; the app boots with the module on and (for non-core modules) off |
 | Browser | Playwright | Sign-in, MFA, invite and accept, role editing, audit viewer, demo one-click login |
 | Config | Vitest | Each profile boots; production rejects each unsafe setting |
@@ -448,7 +455,7 @@ core.
 - README with a quick start.
 - Environment reference: every variable, which profiles need it.
 - "Set up a new client" checklist: clone, edit `store.config.ts`, set
-  secrets, run `pnpm setup`, deploy.
+  secrets, run `pnpm owner:create`, deploy.
 - "Write a module" guide matching what `pnpm create:module` generates.
 
 ## 14. Definition of done
@@ -472,12 +479,15 @@ core.
    data.
 7. All CI checks pass.
 
-## 15. Risk to settle first
+## 15. Settled risk: per-module migrations
 
-Per-module migration **running** is confirmed (section 3.7). Per-module
-migration **generation** with drizzle-kit is not yet confirmed for a module
-whose schema has a foreign key to another module's table. The first task in
-the implementation plan is a short spike that generates and applies
-migrations for two dependent modules. If drizzle-kit cannot generate them
-cleanly per module, the fallback is hand-written SQL migrations per module,
-applied by the same runner. Nothing else in this design changes either way.
+Checked on 2026-11-11 with drizzle-orm 0.45.4 and drizzle-kit 0.31.11, using
+two throwaway modules where the second has a foreign key to the first's
+table:
+
+- `drizzle-kit generate` run per module produced a separate migration for
+  each, with the cross-module foreign key in the second module's file.
+- `migrate()` applied both with separate tracking tables
+  (`__migrations_a`, `__migrations_b`) and was safe to run twice.
+
+No fallback is needed.
