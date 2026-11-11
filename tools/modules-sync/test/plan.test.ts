@@ -27,4 +27,12 @@ describe("planSync", () => {
   it("is deterministic", () => expect(planSync(s, av)).toEqual(planSync(s, av)));
   it("surfaces resolver errors", () =>
     expect(() => planSync({ ...store, modules: { b: {} } }, { a, b })).toThrow('requires "a"'));
+  it("derives distinct bindings for ids that differ only by hyphen placement", () => {
+    const out = planSync({ ...store, modules: { "a-1": {}, a1: {} } }, { "a-1": mk("a-1"), a1: mk("a1") });
+    for (const file of [out.apiFile, out.adminFile]) {
+      const names = [...file.matchAll(/import \{ \w+ as (\w+) \}/g)].map((m) => m[1]);
+      expect(names.length).toBe(4);
+      expect(new Set(names).size).toBe(names.length);
+    }
+  });
 });
