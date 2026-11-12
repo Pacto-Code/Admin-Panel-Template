@@ -12,8 +12,9 @@ it("serves health from the platform module through createApp", async () => {
     logLevel: "silent",
     adminUrl: "http://localhost:3000",
     errorTracking: { provider: "none" },
+    demo: { oneClickLogin: false, lockRiskySettings: false, resetCron: null },
   } as AppConfig;
-  const app = await createApp({ config, db: {} as Db, modules: [AppModule] });
+  const app = await createApp({ config, db: {} as Db, modules: [AppModule], jobs: "inline" });
   await app.init();
   const res = await request(app.getHttpServer()).get("/api/v1/health");
   expect(res.status).toBe(200);

@@ -25,7 +25,10 @@ export function vitestPreset(dir: string) {
       environment: "node",
       // A value already in the environment wins over the file.
       env: { ...loadTestEnv(), ...(fromEnv ? { TEST_DATABASE_URL: fromEnv } : {}) },
-      testTimeout: 30_000,
+      // CREATE DATABASE takes seconds and calls from parallel files (and packages, under turbo) queue
+      // behind each other, so a test or hook that creates a database may wait well beyond its own work.
+      testTimeout: 120_000,
+      hookTimeout: 120_000,
     },
   });
 }

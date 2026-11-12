@@ -99,6 +99,7 @@ export async function buildApp(db: Db, profile: "demo" | "dev") {
   const app = await createApp({
     config,
     db,
+    jobs: "inline",
     modules: [SecurityModule],
     providers: [
       FakeAccess,

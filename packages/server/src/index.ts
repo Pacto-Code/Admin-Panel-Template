@@ -17,3 +17,23 @@ export {
 export { AccessGuard } from "./security/access.guard";
 export { CsrfService } from "./security/csrf";
 export { findUnguardedRoutes } from "./security/route-audit";
+export {
+  AUDIT_RECORDER,
+  NoAudit,
+  type AuditEntryInput,
+  type AuditRecorder,
+} from "./data/audit-tokens";
+export { MutationRunner, type MutationSpec } from "./data/mutation-runner";
+export { DEFAULT_SENSITIVE, redact } from "./data/redact";
+export { EventBus, type DomainEvent } from "./events/event-bus";
+export { OnEvent } from "./events/on-event.decorator";
+export { JobsService, type JobHandler } from "./jobs/jobs.service";
+export {
+  MAILER,
+  NOTIFIER,
+  STORAGE,
+  type MailMessage,
+  type Mailer,
+  type Notifier,
+  type StorageProvider,
+} from "./services/tokens";

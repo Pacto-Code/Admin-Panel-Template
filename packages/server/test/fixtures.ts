@@ -52,7 +52,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
 }
 
 export async function makeApp(db: Db, tracker = new FakeTracker(), config = makeConfig()) {
-  const app = await createApp({ config, db, modules: [TestModule], errorTracker: tracker });
+  const app = await createApp({ config, db, modules: [TestModule], errorTracker: tracker, jobs: "inline" });
   await app.init();
   return { app, tracker };
 }

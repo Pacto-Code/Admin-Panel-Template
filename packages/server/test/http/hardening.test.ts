@@ -59,6 +59,7 @@ describe("hardening", () => {
     const closed = await createApp({
       config: makeConfig(),
       db,
+      jobs: "inline",
       modules: [TestModule],
       errorTracker: new FakeTracker(),
     });
@@ -95,6 +96,7 @@ describe("hardening", () => {
     const logged = await createApp({
       config: makeConfig({ logLevel: "info" }),
       db: t.db,
+      jobs: "inline",
       modules: [TestModule],
       errorTracker: new FakeTracker(),
       logStream: sink,

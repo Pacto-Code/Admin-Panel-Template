@@ -11,9 +11,9 @@ import { createErrorTracker } from "./http/error-tracker";
 import { createHttpLogger } from "./http/logging";
 import { requestIdMiddleware } from "./http/request-id.middleware";
 import { PlatformModule } from "./platform.module";
-import type { ErrorTracker } from "./tokens";
+import { API_PREFIX, type ErrorTracker } from "./tokens";
 
-export const API_PREFIX = "api/v1";
+export { API_PREFIX };
 
 @Module({})
 class RootModule {}
@@ -27,6 +27,8 @@ export async function createApp(opts: {
   providers?: Provider[];
   errorTracker?: ErrorTracker;
   logStream?: Writable;
+  /** "boss" (default) runs jobs on pg-boss; "inline" runs them immediately in the caller (tests). Migrations are the caller's job. */
+  jobs?: "boss" | "inline";
 }): Promise<INestApplication> {
   const { config } = opts;
   const tracker = opts.errorTracker ?? (await createErrorTracker(config));
@@ -34,7 +36,16 @@ export async function createApp(opts: {
   const app = await NestFactory.create<NestExpressApplication>(
     {
       module: RootModule,
-      imports: [PlatformModule.register({ config, db: opts.db, errorTracker: tracker, providers: opts.providers }), ...opts.modules],
+      imports: [
+        PlatformModule.register({
+          config,
+          db: opts.db,
+          errorTracker: tracker,
+          providers: opts.providers,
+          jobs: opts.jobs ?? "boss",
+        }),
+        ...opts.modules,
+      ],
     },
     { bodyParser: false, logger: false },
   );
