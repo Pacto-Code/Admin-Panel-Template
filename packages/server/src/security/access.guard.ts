@@ -39,7 +39,8 @@ export class AccessGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (context.getType() !== "http") return true;
+    // Only HTTP routes carry the access metadata this guard checks; fail closed for anything else.
+    if (context.getType() !== "http") return false;
     const targets = [context.getHandler(), context.getClass()];
     const kind = this.reflector.getAllAndOverride<AccessKind | undefined>(ACCESS_KEY, targets);
     const req = context.switchToHttp().getRequest<Request>();

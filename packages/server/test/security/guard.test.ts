@@ -1,6 +1,9 @@
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { INestApplication } from "@nestjs/common";
+import type { ExecutionContext, INestApplication } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { AccessGuard, type CsrfService } from "../../src";
+import { makeConfig } from "../fixtures";
 import { createTestDatabase } from "@platform/db/testing";
 import { actingAs, buildApp } from "./fixtures";
 
@@ -72,4 +75,12 @@ describe("AccessGuard", () => {
   it("puts the actor in the request context", async () =>
     expect((await as({ userId: "u1", permissions: [] }).get(`${T}/whoami`)).body.userId).toBe("u1"));
   it("keeps health public", async () => expect((await http.get("/api/v1/health")).status).toBe(200));
+});
+
+describe("AccessGuard outside HTTP", () => {
+  it("denies non-HTTP execution contexts", async () => {
+    const guard = new AccessGuard(new Reflector(), {} as CsrfService, makeConfig());
+    const context = { getType: () => "rpc" } as unknown as ExecutionContext;
+    await expect(guard.canActivate(context)).resolves.toBe(false);
+  });
 });
