@@ -3,12 +3,12 @@ import { sql } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import {
   ConflictError,
-  createTestDatabase,
   expectUpdated,
   runMigrations,
   type Db,
   type MigrationSource,
-} from "../src";
+} from "@platform/db";
+import { createTestDatabase } from "@platform/db/testing";
 
 const alpha: MigrationSource = {
   id: "alpha",

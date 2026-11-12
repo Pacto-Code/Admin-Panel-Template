@@ -21,8 +21,18 @@ export const version = {
   version: integer("version").notNull().default(1),
 };
 
+const amountColumn = <N extends string>(name: N) => bigint(name, { mode: "bigint" });
+const currencyColumn = <N extends string>(name: N) => char(name, { length: 3 });
+
+type MoneyColumns<N extends string> = {
+  [K in `${N}Amount`]: ReturnType<typeof amountColumn<`${N}_amount`>>;
+} & {
+  [K in `${N}Currency`]: ReturnType<typeof currencyColumn<`${N}_currency`>>;
+};
+
 /** Integer minor units plus an ISO 4217 currency code. */
-export const money = (name: string) => ({
-  [`${name}Amount`]: bigint(`${name}_amount`, { mode: "bigint" }),
-  [`${name}Currency`]: char(`${name}_currency`, { length: 3 }),
-});
+export const money = <N extends string>(name: N): MoneyColumns<N> =>
+  ({
+    [`${name}Amount`]: amountColumn(`${name}_amount`),
+    [`${name}Currency`]: currencyColumn(`${name}_currency`),
+  }) as MoneyColumns<N>;
