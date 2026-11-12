@@ -1,0 +1,16 @@
+{
+  "name": "modules-sync",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@platform/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@platform/vitest-preset": "workspace:*"
+  }
+}

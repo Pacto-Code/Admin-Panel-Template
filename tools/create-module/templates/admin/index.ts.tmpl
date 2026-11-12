@@ -1,0 +1,14 @@
+import type { AdminModuleDef } from "@platform/core";
+
+/** Placeholder for the item list screen. Its text comes from ./messages. */
+function {{pascal}}ListPage() {
+  return null;
+}
+
+export const adminModule: AdminModuleDef = {
+  id: "{{id}}",
+  pages: [
+    { path: "/{{id}}", access: "{{id}}.item.read", layout: "app", load: async () => ({ default: {{pascal}}ListPage }) },
+  ],
+  messages: { en: () => import("./messages/en.json") },
+};

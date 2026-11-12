@@ -1,0 +1,10 @@
+node_modules
+dist
+.turbo
+.next
+.data
+.env*
+!.env.*.example
+.superpowers/
+*.tsbuildinfo
+packages/server/test/.fixtures/

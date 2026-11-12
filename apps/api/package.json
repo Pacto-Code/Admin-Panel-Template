@@ -1,0 +1,25 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "tsup --watch --onSuccess \"node dist/main.js\"",
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.4.2",
+    "@nestjs/core": "^12.4.2",
+    "@nestjs/platform-express": "^12.4.2",
+    "@platform/config": "workspace:*",
+    "@platform/core": "workspace:*",
+    "@platform/db": "workspace:*",
+    "@platform/server": "workspace:*",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@platform/vitest-preset": "workspace:*"
+  }
+}

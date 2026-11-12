@@ -1,0 +1,11 @@
+import { pgTable, text } from "drizzle-orm/pg-core";
+import { id, softDelete, timestamps, version } from "@platform/db";
+
+/** Every table of this module starts with "{{table}}_". After changing it, run `pnpm db:generate {{id}}`. */
+export const {{camel}}Items = pgTable("{{table}}_items", {
+  id: id(),
+  name: text("name").notNull(),
+  ...version,
+  ...timestamps,
+  ...softDelete,
+});

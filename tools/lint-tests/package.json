@@ -1,0 +1,13 @@
+{
+  "name": "@platform/lint-tests",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@platform/vitest-preset": "workspace:*"
+  }
+}
