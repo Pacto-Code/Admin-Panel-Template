@@ -3,10 +3,11 @@ import { Controller, Get, Module, Post } from "@nestjs/common";
 import { z } from "zod";
 import type { AppConfig } from "@platform/config";
 import { ConflictError, type Db } from "@platform/db";
-import { AppError, createApp, ZodBody, type ErrorTracker } from "../src";
+import { AppError, createApp, Public, ZodBody, type ErrorTracker } from "../src";
 
 const EchoBody = z.object({ email: z.email(), pad: z.string().optional() });
 
+@Public()
 @Controller("test")
 export class TestController {
   @Get("boom")
@@ -43,6 +44,8 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     port: 0,
     logLevel: "silent",
     adminUrl: "http://localhost:3000",
+    session: { secret: "test-session-secret-test-session-secret", cookieName: "sid", idleHours: 12, absoluteDays: 7 },
+    demo: { oneClickLogin: false, lockRiskySettings: false, resetCron: null },
     errorTracking: { provider: "none" },
     ...overrides,
   } as AppConfig;

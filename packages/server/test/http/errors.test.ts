@@ -29,7 +29,7 @@ describe("error shape", () => {
     });
   });
   it("maps validation failures to per-field messages", async () => {
-    const res = await http.post("/api/v1/test/echo").send({ email: "nope" });
+    const res = await http.post("/api/v1/test/echo").set("Origin", "http://localhost:3000").send({ email: "nope" });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("request.validation_failed");
     expect(res.body.error.fields.email).toHaveLength(1);
@@ -53,7 +53,7 @@ describe("error shape", () => {
     expect(res.body.error.code).toBe("request.conflict");
   });
   it("rejects a body over 1 MB with 413", async () => {
-    const res = await http.post("/api/v1/test/echo").send({ email: "a@b.co", pad: "x".repeat(1_100_000) });
+    const res = await http.post("/api/v1/test/echo").set("Origin", "http://localhost:3000").send({ email: "a@b.co", pad: "x".repeat(1_100_000) });
     expect(res.status).toBe(413);
     expect(res.body.error.code).toBe("request.too_large");
   });

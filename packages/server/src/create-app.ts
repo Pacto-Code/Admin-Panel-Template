@@ -1,5 +1,5 @@
 import type { Writable } from "node:stream";
-import { Module, type INestApplication, type Type } from "@nestjs/common";
+import { Module, type INestApplication, type Provider, type Type } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import express, { type NextFunction, type Request, type Response } from "express";
@@ -23,6 +23,8 @@ export async function createApp(opts: {
   config: AppConfig;
   db: Db;
   modules: Type[];
+  /** Extra providers for the platform module, e.g. real AUTHENTICATOR / PERMISSION_RESOLVER implementations. */
+  providers?: Provider[];
   errorTracker?: ErrorTracker;
   logStream?: Writable;
 }): Promise<INestApplication> {
@@ -32,7 +34,7 @@ export async function createApp(opts: {
   const app = await NestFactory.create<NestExpressApplication>(
     {
       module: RootModule,
-      imports: [PlatformModule.register({ config, db: opts.db, errorTracker: tracker }), ...opts.modules],
+      imports: [PlatformModule.register({ config, db: opts.db, errorTracker: tracker, providers: opts.providers }), ...opts.modules],
     },
     { bodyParser: false, logger: false },
   );

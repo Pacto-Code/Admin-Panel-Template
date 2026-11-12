@@ -1,8 +1,10 @@
 import { Controller, Get, Inject } from "@nestjs/common";
 import type { Db } from "@platform/db";
 import { AppError } from "./http/app-error";
+import { Public } from "./security/decorators";
 import { DB } from "./tokens";
 
+@Public()
 @Controller()
 export class HealthController {
   constructor(@Inject(DB) private readonly db: Db) {}

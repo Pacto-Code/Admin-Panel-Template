@@ -102,6 +102,7 @@ describe("hardening", () => {
     await logged.init();
     await request(logged.getHttpServer())
       .post("/api/v1/test/echo")
+      .set("Origin", "http://localhost:3000")
       .set("Authorization", "Bearer topsecret")
       .set("Cookie", "sid=topsecret")
       .set("X-Request-Id", "rid-1")
