@@ -4,6 +4,6 @@
     "dev": { "cache": false, "persistent": true },
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "typecheck": { "dependsOn": ["^typecheck"] },
-    "test": {}
+    "test": { "passThroughEnv": ["TEST_DATABASE_URL"] }
   }
 }

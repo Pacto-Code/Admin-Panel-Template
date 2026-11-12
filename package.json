@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "db:generate": "tsx tools/db-generate/index.ts",
     "modules:sync": "tsx tools/modules-sync/src/run.ts"
   },
   "devDependencies": {

@@ -17,7 +17,8 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/config/**"],
+    // Test tooling reads TEST_DATABASE_URL directly; it is never production configuration.
+    files: ["packages/config/**", "packages/db/src/testing.ts", "tools/vitest-preset/**"],
     rules: { "no-restricted-properties": "off" },
   },
 );

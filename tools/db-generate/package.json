@@ -1,0 +1,9 @@
+{
+  "name": "@platform/db-generate",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11"
+  }
+}
