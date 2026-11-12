@@ -1,13 +1,19 @@
 import "reflect-metadata";
-import { NestFactory } from "@nestjs/core";
 import request from "supertest";
 import { it, expect } from "vitest";
-import { configureApp } from "@platform/server";
+import type { AppConfig } from "@platform/config";
+import type { Db } from "@platform/db";
+import { createApp } from "@platform/server";
 import { AppModule } from "../src/app.module";
 
-it("serves health from a controller defined in a workspace package", async () => {
-  const app = await NestFactory.create(AppModule, { logger: false });
-  configureApp(app);
+it("serves health from the platform module through createApp", async () => {
+  const config = {
+    env: "development",
+    logLevel: "silent",
+    adminUrl: "http://localhost:3000",
+    errorTracking: { provider: "none" },
+  } as AppConfig;
+  const app = await createApp({ config, db: {} as Db, modules: [AppModule] });
   await app.init();
   const res = await request(app.getHttpServer()).get("/api/v1/health");
   expect(res.status).toBe(200);

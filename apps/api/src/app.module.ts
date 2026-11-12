@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { HealthController } from "@platform/server";
 
-@Module({ controllers: [HealthController] })
+/** Hosts the enabled modules' API parts. */
+@Module({})
 export class AppModule {}
