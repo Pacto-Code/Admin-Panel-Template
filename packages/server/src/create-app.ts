@@ -54,6 +54,8 @@ export async function createApp(opts: {
   );
 
   app.set("query parser", "extended");
+  // Decides req.ip (RequestContext.ip, the throttler key) behind a load balancer; see TRUST_PROXY.
+  app.set("trust proxy", config.trustProxy);
   app.setGlobalPrefix(API_PREFIX);
   app.use(helmet());
   const allowedOrigin = new URL(config.adminUrl).origin;

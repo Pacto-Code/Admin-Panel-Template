@@ -3,7 +3,7 @@ import { Controller, Get, Module, Post } from "@nestjs/common";
 import { z } from "zod";
 import type { AppConfig } from "@platform/config";
 import { ConflictError, type Db } from "@platform/db";
-import { AppError, createApp, Public, ZodBody, type ErrorTracker } from "../src";
+import { AppError, createApp, Public, requestContext, ZodBody, type ErrorTracker } from "../src";
 
 const EchoBody = z.object({ email: z.email(), pad: z.string().optional() });
 
@@ -21,6 +21,10 @@ export class TestController {
   @Get("crash")
   crash() {
     throw new Error("secret internal detail");
+  }
+  @Get("ip")
+  ip() {
+    return { ip: requestContext.get()?.ip };
   }
   @Get("conflict")
   conflict() {
@@ -44,6 +48,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     port: 0,
     logLevel: "silent",
     adminUrl: "http://localhost:3000",
+    trustProxy: false,
     session: { secret: "test-session-secret-test-session-secret", cookieName: "sid", idleHours: 12, absoluteDays: 7 },
     demo: { oneClickLogin: false, lockRiskySettings: false, resetCron: null },
     auditEnforcement: "throw",

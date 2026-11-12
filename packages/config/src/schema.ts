@@ -12,6 +12,11 @@ export interface AppConfig {
   databaseUrl: string;
   apiUrl: string;
   adminUrl: string;
+  /**
+   * Express "trust proxy": false trusts no proxy (req.ip is the socket address), a number trusts that many
+   * hops in X-Forwarded-For, a string is a comma-separated list of trusted proxy addresses / CIDR ranges.
+   */
+  trustProxy: false | number | string;
   session: { secret: string; cookieName: "sid"; idleHours: 12; absoluteDays: 7 };
   encryptionKey: Buffer;
   email: {
@@ -78,5 +83,6 @@ export const envSchema = z.object({
   S3_ENDPOINT: optional,
   S3_PUBLIC_URL: optional,
   SENTRY_DSN: optional,
+  TRUST_PROXY: optional,
 });
 export type Env = z.infer<typeof envSchema>;

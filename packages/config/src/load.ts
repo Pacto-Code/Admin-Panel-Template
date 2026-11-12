@@ -2,6 +2,21 @@ import type { StoreConfigInput } from "@platform/core";
 import { LOCAL_STORAGE_DIR, MAILPIT_DEFAULTS, PROFILES } from "./profiles";
 import { APP_ENVS, ConfigError, envSchema, type AppConfig, type AppEnv, type ConfigIssue } from "./schema";
 
+const HOPS = /^\d+$/;
+// An IPv4/IPv6 address with an optional prefix length, or one of proxy-addr's named ranges.
+const PROXY_ADDRESS =
+  /^(?:\d{1,3}(?:\.\d{1,3}){3}(?:\/\d{1,2})?|[0-9a-f]*:[0-9a-f:.]*(?:\/\d{1,3})?|loopback|linklocal|uniquelocal)$/i;
+
+/** Parses TRUST_PROXY: unset or "false" trusts nothing, an integer is a hop count, else a list of addresses. */
+function parseTrustProxy(value: string | undefined, fail: (path: string, message: string) => void): AppConfig["trustProxy"] {
+  if (value === undefined || value === "false") return false;
+  if (HOPS.test(value)) return Number(value);
+  const items = value.split(",").map((item) => item.trim());
+  if (items.every((item) => PROXY_ADDRESS.test(item))) return items.join(",");
+  fail("TRUST_PROXY", 'must be "false", a hop count, or a comma-separated list of IP addresses / CIDR ranges');
+  return false;
+}
+
 export function loadConfig(input: {
   env: Record<string, string | undefined>;
   store: StoreConfigInput;
@@ -88,6 +103,8 @@ export function loadConfig(input: {
     errorTracking = { provider: "sentry", dsn: env?.SENTRY_DSN ?? "" };
   }
 
+  const trustProxy = parseTrustProxy(raw.TRUST_PROXY, fail);
+
   if (issues.length > 0 || !env) throw new ConfigError(issues);
 
   return {
@@ -98,6 +115,7 @@ export function loadConfig(input: {
     databaseUrl: env.DATABASE_URL,
     apiUrl: env.API_URL,
     adminUrl: env.ADMIN_URL,
+    trustProxy,
     session: { secret: env.SESSION_SECRET, cookieName: "sid", idleHours: 12, absoluteDays: 7 },
     encryptionKey,
     email: { provider: emailProvider, from: env.EMAIL_FROM, ...(smtp ? { smtp } : {}) },
