@@ -3,7 +3,7 @@ import type { INestApplication } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import { PgBoss } from "pg-boss";
 import { uuidv7, type Db, type Tx } from "@platform/db";
-import { createApp, EventBus, JobsService, MutationRunner } from "../../src";
+import { createApp, EventBus, JobsService, MutationRunner, requestContext } from "../../src";
 import { makeConfig } from "../fixtures";
 import { buildDataApp, countRows, createThingDatabase, insertThing, load, rename, ThingListener, ThingModule } from "../data/fixtures";
 
@@ -79,6 +79,38 @@ describe("outbox (inline jobs)", () => {
     enqueue.mockRestore();
     expect(await bus.dispatchPending()).toBe(1);
     expect(handler).toHaveBeenCalledWith({ id }, { eventId: expect.any(String) });
+  });
+
+  it("runs handlers after the claim commits, like pg-boss", async () => {
+    let seenDispatched: unknown = "not called";
+    handler.mockImplementation(async (payload: { id: string }) => {
+      // Another pool connection: sees the claim only once its transaction has committed.
+      const r = await db.execute<{ d: boolean }>(
+        sql`select dispatched_at is not null as d from platform_outbox where payload->>'id' = ${payload.id}`,
+      );
+      seenDispatched = r.rows[0]?.d;
+    });
+    await db.transaction((tx) => bus.publish(tx, [{ name: "t.thing.renamed", payload: { id } }]));
+    expect(await bus.dispatchPending()).toBe(1);
+    expect(seenDispatched).toBe(true);
+  });
+
+  it("runs handlers outside the caller's request context", async () => {
+    let seen: unknown = "not called";
+    handler.mockImplementation(() => {
+      seen = requestContext.get();
+    });
+    await db.transaction((tx) => bus.publish(tx, [{ name: "t.thing.renamed", payload: { id } }]));
+    const ctx = { requestId: "r-1", actor: null, ip: null, userAgent: null, auditCount: 0 };
+    await requestContext.run(ctx, () => bus.dispatchPending());
+    expect(seen).toBeUndefined();
+  });
+
+  it("propagates a handler failure after the claim, without redelivery (inline jobs do not retry)", async () => {
+    handler.mockRejectedValueOnce(new Error("handler broke"));
+    await db.transaction((tx) => bus.publish(tx, [{ name: "t.thing.renamed", payload: { id } }]));
+    await expect(bus.dispatchPending()).rejects.toThrow(/handler/);
+    expect(await countRows(db, "platform_outbox where dispatched_at is null")).toBe(0);
   });
 
   it("stamps created_at and updated_at on outbox rows", async () => {

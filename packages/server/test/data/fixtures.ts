@@ -16,7 +16,7 @@ export class ThingListener {
   static readonly calls = vi.fn();
   @OnEvent("t.thing.renamed")
   async onRenamed(payload: unknown, meta: { eventId: string }) {
-    ThingListener.calls(payload, meta);
+    await ThingListener.calls(payload, meta);
   }
 }
 

@@ -23,4 +23,8 @@ export const requestContext = {
   run<T>(ctx: RequestContext, fn: () => T): T {
     return storage.run(ctx, fn);
   },
+  /** Runs `fn` with no request context, e.g. background work started from inside a request. */
+  exit<T>(fn: () => T): T {
+    return storage.exit(fn);
+  },
 };
