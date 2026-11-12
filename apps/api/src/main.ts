@@ -12,4 +12,8 @@ async function bootstrap() {
   await app.listen(config.port);
 }
 
-void bootstrap();
+bootstrap().catch((err: unknown) => {
+  // Nest has already logged a bootstrap failure through pino; this covers config and database errors too.
+  console.error(err);
+  process.exitCode = 1;
+});

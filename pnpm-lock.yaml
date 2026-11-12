@@ -180,9 +180,6 @@ importers:
       helmet:
         specifier: ^8.3.0
         version: 8.3.0
-      nestjs-pino:
-        specifier: ^5.3.1
-        version: 5.3.1(@nestjs/common@12.4.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.4.2)(pino-http@11.0.0)(pino@10.4.0)(rxjs@7.8.2)
       pg-boss:
         specifier: ^12.38.2
         version: 12.38.2(@opentelemetry/api@1.10.0)
@@ -2286,16 +2283,6 @@ packages:
   negotiator@1.1.0:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
-
-  nestjs-pino@5.3.1:
-    resolution: {integrity: sha512-tL3fFSY38Wuv3VS4dCo+zlHVt1xU7+RSXnlgenyTvfy74GLBLgisqvG+76983ilf2C2uFkPe68qUapXCYnoSoA==}
-    engines: {node: '>=22.12.0'}
-    peerDependencies:
-      '@nestjs/common': ^11.0.8 || ^12.0.2
-      '@nestjs/core': ^11.0.8 || ^12.0.2
-      pino: ^10.0.0
-      pino-http: ^11.0.0
-      rxjs: ^7.1.0
 
   non-error@0.1.0:
     resolution: {integrity: sha512-TMB1uHiGsHRGv1uYclfhivcnf0/PdFp2pNqRxXjncaAsjYMoisaQJI+SSZCqRq+VliwRTC8tsMQfmrWjDMhkPQ==}
@@ -4573,14 +4560,6 @@ snapshots:
   negotiator@1.1.0:
     dependencies:
       content-type: 2.1.0
-
-  nestjs-pino@5.3.1(@nestjs/common@12.4.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.4.2)(pino-http@11.0.0)(pino@10.4.0)(rxjs@7.8.2):
-    dependencies:
-      '@nestjs/common': 12.4.2(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 12.4.2(@nestjs/common@12.4.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.4.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      pino: 10.4.0
-      pino-http: 11.0.0
-      rxjs: 7.8.2
 
   non-error@0.1.0: {}
 

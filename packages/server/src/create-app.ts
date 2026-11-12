@@ -8,7 +8,7 @@ import type { AppConfig } from "@platform/config";
 import type { Db } from "@platform/db";
 import { sendError } from "./http/error-filter";
 import { createErrorTracker } from "./http/error-tracker";
-import { createHttpLogger } from "./http/logging";
+import { PinoNestLogger, createHttpLogger, createRootLogger } from "./http/logging";
 import { requestIdMiddleware } from "./http/request-id.middleware";
 import { PlatformModule } from "./platform.module";
 import { API_PREFIX, type ErrorTracker } from "./tokens";
@@ -35,6 +35,7 @@ export async function createApp(opts: {
 }): Promise<INestApplication> {
   const { config } = opts;
   const tracker = opts.errorTracker ?? (await createErrorTracker(config));
+  const logger = createRootLogger(config.logLevel, opts.logStream);
 
   const app = await NestFactory.create<NestExpressApplication>(
     {
@@ -50,7 +51,8 @@ export async function createApp(opts: {
         ...opts.modules,
       ],
     },
-    { bodyParser: false, logger: false },
+    // abortOnError false: a DI or scan error rejects here (and is logged) instead of calling process.exit(1).
+    { bodyParser: false, logger: new PinoNestLogger(logger), abortOnError: false },
   );
 
   app.set("query parser", "extended");
@@ -66,7 +68,7 @@ export async function createApp(opts: {
     exposedHeaders: ["X-Request-Id"],
   });
   app.use(requestIdMiddleware);
-  app.use(createHttpLogger(config.logLevel, opts.logStream));
+  app.use(createHttpLogger(logger));
   app.use(express.json({ limit: "1mb" }));
   // Body-parser errors happen before routing, so they bypass the Nest exception filters.
   // Express identifies error handlers by their four parameters, so `next` must stay.
