@@ -23,7 +23,10 @@ export async function createApp(opts: {
   config: AppConfig;
   db: Db;
   modules: Type[];
-  /** Extra providers for the platform module, e.g. real AUTHENTICATOR / PERMISSION_RESOLVER implementations. */
+  /**
+   * Extra providers for the platform module (test seams, e.g. a fake AUTHENTICATOR). They take precedence over
+   * the same token exported by a @Global module. Real implementations come from modules instead.
+   */
   providers?: Provider[];
   errorTracker?: ErrorTracker;
   logStream?: Writable;

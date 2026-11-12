@@ -1,10 +1,10 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import type { Db, Tx } from "@platform/db";
 import { EventDispatcher } from "../events/dispatcher";
 import { EventBus, type DomainEvent } from "../events/event-bus";
 import { requestContext } from "../http/request-context";
 import { DB } from "../tokens";
-import { AUDIT_RECORDER, type AuditEntryInput, type AuditRecorder } from "./audit-tokens";
+import { AUDIT_RECORDER, noopAuditRecorder, type AuditEntryInput, type AuditRecorder } from "./audit-tokens";
 import { redact } from "./redact";
 
 export interface MutationSpec<T> {
@@ -26,12 +26,17 @@ function countAudit(): void {
 /** The one way to change data: the change, its audit entry and its events commit or roll back together. */
 @Injectable()
 export class MutationRunner {
+  private readonly recorder: AuditRecorder;
+
+  /** AUDIT_RECORDER comes from the (@Global) audit module when loaded; otherwise entries are dropped. */
   constructor(
     @Inject(DB) private readonly db: Db,
-    @Inject(AUDIT_RECORDER) private readonly recorder: AuditRecorder,
     private readonly bus: EventBus,
     private readonly dispatcher: EventDispatcher,
-  ) {}
+    @Optional() @Inject(AUDIT_RECORDER) recorder?: AuditRecorder,
+  ) {
+    this.recorder = recorder ?? noopAuditRecorder;
+  }
 
   async run<T>(spec: MutationSpec<T>): Promise<T> {
     const { result, published } = await this.db.transaction(async (tx) => {

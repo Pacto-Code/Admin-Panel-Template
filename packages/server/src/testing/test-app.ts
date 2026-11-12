@@ -76,7 +76,10 @@ function unavailable(what: string, moduleId: string): never {
 
 /**
  * Boots the platform plus `modules` (dependencies first) on a fresh, migrated database, with inline jobs.
- * Unless `realAuth` is set, `as()` drives a fake authenticator and permission resolver.
+ * Unless `realAuth` is set, `as()` drives a fake authenticator and permission resolver; with it, the loaded
+ * auth/access modules' AUTHENTICATOR and PERMISSION_RESOLVER apply. The fake recorder and mailer are used
+ * unless a module with id "audit" / "notifications" is loaded, whose AUDIT_RECORDER / MAILER then apply.
+ * Those modules must be `@Global()` and export their token (see PlatformModule).
  */
 export async function createTestApp(opts: {
   modules: TestModule[];

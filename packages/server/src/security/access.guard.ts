@@ -1,4 +1,4 @@
-import { type CanActivate, type ExecutionContext, Inject, Injectable } from "@nestjs/common";
+import { type CanActivate, type ExecutionContext, Inject, Injectable, Optional } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import type { AppConfig } from "@platform/config";
@@ -7,7 +7,14 @@ import { requestContext } from "../http/request-context";
 import { CONFIG } from "../tokens";
 import { CsrfService } from "./csrf";
 import { ACCESS_KEY, DEMO_LOCKED_KEY, PERMISSION_KEY, type AccessKind } from "./decorators";
-import { AUTHENTICATOR, PERMISSION_RESOLVER, type Authenticator, type PermissionResolver } from "./tokens";
+import {
+  AUTHENTICATOR,
+  PERMISSION_RESOLVER,
+  emptyPermissionResolver,
+  nullAuthenticator,
+  type Authenticator,
+  type PermissionResolver,
+} from "./tokens";
 
 const NON_MUTATING = new Set(["GET", "HEAD", "OPTIONS"]);
 
@@ -16,13 +23,20 @@ const csrfInvalid = () => new AppError("auth.csrf_invalid", 403, "Request could 
 /** Global deny-by-default guard: every route must declare @Public, @Authenticated or @RequirePermission. */
 @Injectable()
 export class AccessGuard implements CanActivate {
+  private readonly authenticator: Authenticator;
+  private readonly resolver: PermissionResolver;
+
+  /** AUTHENTICATOR and PERMISSION_RESOLVER come from the (@Global) auth and access modules when loaded. */
   constructor(
     private readonly reflector: Reflector,
     private readonly csrf: CsrfService,
     @Inject(CONFIG) private readonly config: AppConfig,
-    @Inject(AUTHENTICATOR) private readonly authenticator: Authenticator,
-    @Inject(PERMISSION_RESOLVER) private readonly resolver: PermissionResolver,
-  ) {}
+    @Optional() @Inject(AUTHENTICATOR) authenticator?: Authenticator,
+    @Optional() @Inject(PERMISSION_RESOLVER) resolver?: PermissionResolver,
+  ) {
+    this.authenticator = authenticator ?? nullAuthenticator;
+    this.resolver = resolver ?? emptyPermissionResolver;
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== "http") return true;
