@@ -150,7 +150,8 @@ export function describeModuleContract(opts: { module: TestModule; dependencies:
         } finally {
           await off.close();
         }
-      });
+        // Creates its own database in the test body, which can queue behind other files' CREATE DATABASE.
+      }, 120_000);
     }
   });
 }

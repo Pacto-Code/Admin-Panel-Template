@@ -83,7 +83,8 @@ describe("hardening", () => {
     expect(code).toBe("request.rate_limited");
     await limited.close();
     await t.drop();
-  });
+    // Creates its own database in the test body.
+  }, 120_000);
   it("logs the request id and redacts secrets", async () => {
     const lines: string[] = [];
     const sink = new Writable({
@@ -115,5 +116,6 @@ describe("hardening", () => {
     expect(out).toContain("rid-1");
     expect(out).not.toContain("topsecret");
     expect(out).not.toContain("hunter2");
-  });
+    // Creates its own database in the test body.
+  }, 120_000);
 });

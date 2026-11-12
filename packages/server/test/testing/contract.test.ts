@@ -81,4 +81,5 @@ it("serves the example route when enabled and 404s when not", async () => {
   } finally {
     await off.close();
   }
-});
+  // Creates two databases in the test body.
+}, 120_000);

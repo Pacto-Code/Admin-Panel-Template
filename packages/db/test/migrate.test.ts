@@ -33,6 +33,9 @@ async function countRows(db: Db, table: string): Promise<number> {
   return r.rows[0]!.n;
 }
 
+// These tests create their database in the test body, which can queue behind other files' CREATE DATABASE.
+const DB_TEST_TIMEOUT = 120_000;
+
 describe("runMigrations", () => {
   it("applies each module's migrations with its own tracking table", async () => {
     const t = await createTestDatabase([alpha, beta]);
@@ -46,21 +49,21 @@ describe("runMigrations", () => {
       ]),
     );
     await t.drop();
-  });
+  }, DB_TEST_TIMEOUT);
 
   it("is safe to run twice", async () => {
     const t = await createTestDatabase([alpha]);
     await runMigrations(t.db, [alpha]);
     expect(await countRows(t.db, "drizzle.__migrations_alpha")).toBe(1);
     await t.drop();
-  });
+  }, DB_TEST_TIMEOUT);
 
   it("adds a module later without touching earlier ones", async () => {
     const t = await createTestDatabase([alpha]);
     await runMigrations(t.db, [alpha, beta]);
     expect(await listTables(t.db)).toContain("public.beta_notes");
     await t.drop();
-  });
+  }, DB_TEST_TIMEOUT);
 });
 
 describe("helpers", () => {
