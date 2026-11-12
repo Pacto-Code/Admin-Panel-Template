@@ -6,7 +6,7 @@ import { MODULE_METADATA } from "@nestjs/common/constants";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { validateManifest } from "@platform/core";
-import { PERMISSION_KEY } from "../security/decorators";
+import { ACCESS_KEY, PERMISSION_KEY } from "../security/decorators";
 import { controllerRoutes, findUnguardedRoutes } from "../security/route-audit";
 import { createTestApp, type TestApp, type TestModule } from "./test-app";
 
@@ -15,6 +15,8 @@ export interface ModuleRoute {
   path: string;
   /** The @RequirePermission key, if the route has one. */
   permission: string | undefined;
+  /** Whether the route (or its controller) declares @Public, @Authenticated or @RequirePermission. */
+  guarded: boolean;
 }
 
 type ModuleImport = Type | DynamicModule | ForwardReference | Promise<DynamicModule>;
@@ -40,8 +42,30 @@ export function moduleRoutes(root: Type, exclude: Type[] = []): ModuleRoute[] {
       method,
       path,
       permission: Reflect.getMetadata(PERMISSION_KEY, handler) as string | undefined,
+      guarded: Reflect.getMetadata(ACCESS_KEY, handler) !== undefined || Reflect.getMetadata(ACCESS_KEY, c) !== undefined,
     })),
   );
+}
+
+const routesOf = (module: TestModule, dependencies: TestModule[]) =>
+  moduleRoutes(
+    module.apiModule,
+    dependencies.map((d) => d.apiModule),
+  );
+
+/** The module's own routes with no access decorator, as "METHOD /path". */
+export function unguardedRoutes(module: TestModule, dependencies: TestModule[] = []): string[] {
+  return routesOf(module, dependencies)
+    .filter((r) => !r.guarded)
+    .map((r) => `${r.method} ${r.path}`);
+}
+
+/** The module's routes whose @RequirePermission key its manifest does not declare. */
+export function undeclaredPermissions(module: TestModule, dependencies: TestModule[] = []): string[] {
+  const declared = new Set(module.manifest.permissions.map((p) => p.key));
+  return routesOf(module, dependencies)
+    .filter((r) => r.permission !== undefined && !declared.has(r.permission))
+    .map((r) => `${r.method} ${r.path} requires "${r.permission}"`);
 }
 
 /** The migrations drizzle-kit generated into a folder, oldest first. */
@@ -50,15 +74,26 @@ const migrationTags = (folder: string): string[] =>
     (e) => e.tag,
   );
 
-/** Table names a module's migration files create, read from their SQL. */
-function createdTables(migrationsFolder: string): string[] {
-  return migrationTags(migrationsFolder).flatMap((tag) =>
-    [
-      ...readFileSync(join(migrationsFolder, `${tag}.sql`), "utf8").matchAll(
-        /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?\w+"?\.)?"?([\w-]+)"?/gi,
-      ),
-    ].map((m) => m[1]!),
-  );
+const CREATE_TABLE = /\bcreate\s+(?:\w+\s+)*?table\b/gi;
+const CREATE_TABLE_NAME =
+  /\bcreate\s+(?:\w+\s+)*?table\s+(?:if\s+not\s+exists\s+)?(?:(?:"[^"]+"|\w+)\.)?(?:"([^"]+)"|(\w+))/gi;
+
+/** Table names a migration's SQL creates. Throws when a CREATE TABLE's name cannot be read, so the check never passes vacuously. */
+export function createdTables(sqlText: string): string[] {
+  const names = [...sqlText.matchAll(CREATE_TABLE_NAME)].map((m) => (m[1] ?? m[2])!);
+  const statements = sqlText.match(CREATE_TABLE)?.length ?? 0;
+  if (names.length !== statements) {
+    throw new Error(`Found ${statements} CREATE TABLE statement(s) but could read only ${names.length} table name(s)`);
+  }
+  return names;
+}
+
+/** Tables the module's migrations create without its `<id>_` prefix (dashes as underscores). */
+export function unprefixedTables(module: Pick<TestModule, "id" | "migrationsFolder">): string[] {
+  const prefix = `${module.id.replaceAll("-", "_")}_`;
+  return migrationTags(module.migrationsFolder)
+    .flatMap((tag) => createdTables(readFileSync(join(module.migrationsFolder, `${tag}.sql`), "utf8")))
+    .filter((name) => !name.startsWith(prefix));
 }
 
 const SAMPLE_ID = "00000000-0000-7000-8000-000000000000";
@@ -83,16 +118,14 @@ export function describeModuleContract(opts: { module: TestModule; dependencies:
       expect(validateManifest(module.manifest)).toEqual([]);
     });
 
-    it("declares an access decorator on every route", () => expect(findUnguardedRoutes(t.app)).toEqual([]));
-
-    it("declares every @RequirePermission key in its manifest", () => {
-      const declared = new Set(module.manifest.permissions.map((p) => p.key));
-      const undeclared = moduleRoutes(
-        module.apiModule,
-        dependencies.map((d) => d.apiModule),
-      ).filter((r) => r.permission !== undefined && !declared.has(r.permission));
-      expect(undeclared.map((r) => `${r.method} ${r.path} requires "${r.permission}"`)).toEqual([]);
+    it("declares an access decorator on every route", () => {
+      expect(unguardedRoutes(module, dependencies)).toEqual([]);
+      // The booted app also covers controllers the static walk cannot see (e.g. async dynamic modules).
+      expect(findUnguardedRoutes(t.app)).toEqual([]);
     });
+
+    it("declares every @RequirePermission key in its manifest", () =>
+      expect(undeclaredPermissions(module, dependencies)).toEqual([]));
 
     it("applies its migrations on a clean database", async () => {
       const table = `__migrations_${module.id.replaceAll("-", "_")}`;
@@ -100,8 +133,7 @@ export function describeModuleContract(opts: { module: TestModule; dependencies:
       expect(applied.rows[0]!.n).toBe(migrationTags(module.migrationsFolder).length);
     });
 
-    it(`prefixes every table with "${prefix}"`, () =>
-      expect(createdTables(module.migrationsFolder).filter((name) => !name.startsWith(prefix))).toEqual([]));
+    it(`prefixes every table with "${prefix}"`, () => expect(unprefixedTables(module)).toEqual([]));
 
     it("boots with the module", async () => expect((await t.anon().get("/api/v1/health")).status).toBe(200));
 
@@ -110,7 +142,7 @@ export function describeModuleContract(opts: { module: TestModule; dependencies:
         const off = await createTestApp({ modules: dependencies });
         try {
           const owner = off.as("owner");
-          for (const route of moduleRoutes(module.apiModule, dependencies.map((d) => d.apiModule))) {
+          for (const route of routesOf(module, dependencies)) {
             const method = route.method === "ALL" ? "get" : (route.method.toLowerCase() as "get");
             const res = await owner[method](route.path.replace(/:\w+/g, SAMPLE_ID));
             expect(res.status, `${route.method} ${route.path}`).toBe(404);

@@ -31,6 +31,7 @@ export default defineConfig({
   platform: "node",
   clean: true,
   sourcemap: true,
-  noExternal: [/^@platform\//],
+  // Workspace packages ship TypeScript source, so they are bundled (and decorator metadata emitted) here.
+  noExternal: [/^@platform\//, /^@modules\//],
   esbuildPlugins: [swcPlugin],
 });

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { run } from "../src/run";
+import { run, withWorkspaceDependency } from "../src/run";
 import { scaffoldModule } from "../src/scaffold";
 
 // A throwaway workspace root, so the test never depends on (or touches) the real modules/ folder.
@@ -36,4 +36,21 @@ describe("run", () => {
   it("refuses to overwrite an existing module", async () =>
     await expect(run(["auth"], { root })).rejects.toThrow('Module "auth" already exists'));
   it("requires an id", async () => await expect(run([], { root })).rejects.toThrow("Usage"));
+});
+
+describe("withWorkspaceDependency", () => {
+  it("adds the module to an app's dependencies, sorted, keeping other fields", () => {
+    const before = JSON.stringify({ name: "api", dependencies: { "@platform/server": "workspace:*", "@nestjs/core": "^12" } });
+    const after = withWorkspaceDependency(before, "@modules/gift-cards");
+    expect(after.endsWith("}\n")).toBe(true);
+    expect(JSON.parse(after)).toEqual({
+      name: "api",
+      dependencies: { "@modules/gift-cards": "workspace:*", "@nestjs/core": "^12", "@platform/server": "workspace:*" },
+    });
+    expect(Object.keys(JSON.parse(after).dependencies)[0]).toBe("@modules/gift-cards");
+  });
+  it("creates dependencies when there are none", () =>
+    expect(JSON.parse(withWorkspaceDependency('{"name":"admin"}', "@modules/x")).dependencies).toEqual({
+      "@modules/x": "workspace:*",
+    }));
 });

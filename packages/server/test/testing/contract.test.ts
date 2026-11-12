@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Type } from "@nestjs/common";
@@ -11,42 +11,58 @@ import { createTestApp, describeModuleContract, type TestModule } from "../../sr
 
 // The scaffolded module must resolve @nestjs/*, drizzle-orm and @platform/* like a real module, so it is
 // written inside this package (git-ignored test/.fixtures) rather than an OS temp dir with no node_modules.
+// It is set up at collection time, not in beforeAll, because describeModuleContract registers its checks
+// from the module's manifest; any failure here removes the folder before rethrowing.
 const repoRoot = resolve(import.meta.dirname, "../../../..");
 const fixtureRoot = join(import.meta.dirname, "../.fixtures", `contract-${randomBytes(4).toString("hex")}`);
-afterAll(() => rmSync(fixtureRoot, { recursive: true, force: true }));
-
-for (const file of scaffoldModule("example", "Example")) {
-  const target = join(fixtureRoot, file.path);
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, file.content);
-}
 const moduleDir = join(fixtureRoot, "modules/example");
-// drizzle-kit's bin runs under this Node directly, so no shell is involved and paths may contain spaces.
-const generated = spawnSync(
-  process.execPath,
-  [
-    join(repoRoot, "node_modules/drizzle-kit/bin.cjs"),
-    "generate",
-    "--dialect",
-    "postgresql",
-    "--schema",
-    relative(repoRoot, join(moduleDir, "db/schema.ts")).replaceAll("\\", "/"),
-    "--out",
-    relative(repoRoot, join(moduleDir, "db/migrations")).replaceAll("\\", "/"),
-  ],
-  { cwd: repoRoot, encoding: "utf8", timeout: 120_000 },
-);
-if (generated.status !== 0) throw new Error(`drizzle-kit generate failed:\n${generated.stdout}\n${generated.stderr}`);
+function removeFixture() {
+  rmSync(fixtureRoot, { recursive: true, force: true });
+  try {
+    rmdirSync(dirname(fixtureRoot)); // only when empty: another run may be using it
+  } catch {
+    // not empty, or already gone
+  }
+}
 
-const load = async <T>(path: string) => (await import(pathToFileURL(join(moduleDir, path)).href)) as T;
-const { manifest } = await load<{ manifest: ModuleManifest }>("manifest.ts");
-const { apiModule } = await load<{ apiModule: Type }>("api/index.ts");
-const exampleModule: TestModule = {
-  id: manifest.id,
-  manifest,
-  apiModule,
-  migrationsFolder: join(moduleDir, "db/migrations"),
-};
+async function scaffoldExample(): Promise<TestModule> {
+  for (const file of scaffoldModule("example", "Example")) {
+    const target = join(fixtureRoot, file.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, file.content);
+  }
+  // drizzle-kit's bin runs under this Node directly, so no shell is involved and paths may contain spaces.
+  const generated = spawnSync(
+    process.execPath,
+    [
+      join(repoRoot, "node_modules/drizzle-kit/bin.cjs"),
+      "generate",
+      "--dialect",
+      "postgresql",
+      "--schema",
+      relative(repoRoot, join(moduleDir, "db/schema.ts")).replaceAll("\\", "/"),
+      "--out",
+      relative(repoRoot, join(moduleDir, "db/migrations")).replaceAll("\\", "/"),
+    ],
+    { cwd: repoRoot, encoding: "utf8", timeout: 120_000 },
+  );
+  if (generated.status !== 0) {
+    throw new Error(`drizzle-kit generate failed:\n${generated.stdout}\n${generated.stderr}${generated.error ?? ""}`);
+  }
+  const load = async <T>(path: string) => (await import(pathToFileURL(join(moduleDir, path)).href)) as T;
+  const { manifest } = await load<{ manifest: ModuleManifest }>("manifest.ts");
+  const { apiModule } = await load<{ apiModule: Type }>("api/index.ts");
+  return { id: manifest.id, manifest, apiModule, migrationsFolder: join(moduleDir, "db/migrations") };
+}
+
+let exampleModule: TestModule;
+try {
+  exampleModule = await scaffoldExample();
+} catch (err) {
+  removeFixture();
+  throw err;
+}
+afterAll(removeFixture);
 
 describeModuleContract({ module: exampleModule, dependencies: [] });
 
