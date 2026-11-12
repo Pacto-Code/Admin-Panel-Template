@@ -10,6 +10,9 @@ import type { AppConfig } from "@platform/config";
 import { CONFIG, ERROR_TRACKER, type ErrorTracker } from "../tokens";
 import { handlerFor, type JobHandler, JobsService } from "./jobs.service";
 
+const RETRY_POLICY = { retryLimit: 10, retryDelay: 5, retryBackoff: true } as const;
+const DEAD_LETTER_SUFFIX = ".dead";
+
 /** pg-boss on the application database. Starts at bootstrap, stops on app close. */
 @Injectable()
 export class BossJobs extends JobsService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -75,9 +78,18 @@ export class BossJobs extends JobsService implements OnApplicationBootstrap, OnA
     return this.boss;
   }
 
+  /**
+   * Every queue retries a failed job with exponential backoff (5 s doubling, 10 retries), then moves it to
+   * `<name>.dead` instead of dropping it. Delivery is therefore at-least-once up to the dead letter, with
+   * no ordering guarantee between jobs.
+   */
   private async ensureQueue(boss: PgBoss, name: string): Promise<void> {
     if (this.queues.has(name)) return;
-    await boss.createQueue(name);
+    const policy = { ...RETRY_POLICY, deadLetter: `${name}${DEAD_LETTER_SUFFIX}` };
+    await boss.createQueue(policy.deadLetter);
+    await boss.createQueue(name, policy);
+    // createQueue leaves an existing queue untouched, so bring one created earlier up to the policy.
+    await boss.updateQueue(name, policy);
     this.queues.add(name);
   }
 

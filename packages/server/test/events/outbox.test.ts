@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { INestApplication } from "@nestjs/common";
 import { sql } from "drizzle-orm";
+import { PgBoss } from "pg-boss";
 import { uuidv7, type Db, type Tx } from "@platform/db";
 import { createApp, EventBus, JobsService, MutationRunner } from "../../src";
 import { makeConfig } from "../fixtures";
@@ -80,6 +81,15 @@ describe("outbox (inline jobs)", () => {
     expect(handler).toHaveBeenCalledWith({ id }, { eventId: expect.any(String) });
   });
 
+  it("stamps created_at and updated_at on outbox rows", async () => {
+    await db.transaction((tx) => bus.publish(tx, [{ name: "t.other", payload: {} }]));
+    const r = await db.execute<{ c: boolean; u: boolean }>(
+      sql`select created_at is not null as c, updated_at is not null as u from platform_outbox where name = 't.other'`,
+    );
+    expect(r.rows).toEqual([{ c: true, u: true }]);
+    await db.execute(sql`delete from platform_outbox where name = 't.other'`);
+  });
+
   it("runs a scheduled job on demand", async () => {
     const jobs = app.get(JobsService);
     const fn = vi.fn(async () => {});
@@ -92,6 +102,12 @@ describe("outbox (inline jobs)", () => {
 
 describe("outbox (pg-boss)", () => {
   it("starts, delivers an event and stops cleanly", async () => {
+    // A queue left with pg-boss defaults (retry_limit 2, no dead letter) must be upgraded at start.
+    const legacy = new PgBoss(url);
+    await legacy.start();
+    await legacy.createQueue("platform.events");
+    await legacy.stop({ graceful: false });
+
     const app = await createApp({ config: makeConfig({ databaseUrl: url }), db, modules: [ThingModule] });
     try {
       await app.init();
@@ -105,6 +121,14 @@ describe("outbox (pg-boss)", () => {
       });
       const schema = await db.execute(sql`select 1 from information_schema.schemata where schema_name = 'pgboss'`);
       expect(schema.rows).toHaveLength(1);
+      const queues = await db.execute(
+        sql`select name, retry_limit, retry_delay, retry_backoff, dead_letter from pgboss.queue
+            where name like 'platform.events%' order by name`,
+      );
+      expect(queues.rows).toEqual([
+        { name: "platform.events", retry_limit: 10, retry_delay: 5, retry_backoff: true, dead_letter: "platform.events.dead" },
+        expect.objectContaining({ name: "platform.events.dead", dead_letter: null }),
+      ]);
     } finally {
       await app.close();
     }

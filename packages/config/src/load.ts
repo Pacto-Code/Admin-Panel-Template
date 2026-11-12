@@ -104,6 +104,7 @@ export function loadConfig(input: {
     storage,
     errorTracking,
     demo: { ...profile.demo },
+    auditEnforcement: profile.auditEnforcement,
     modules: store.modules,
     branding: store.branding,
     locale: store.locale,

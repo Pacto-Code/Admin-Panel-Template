@@ -32,6 +32,8 @@ export interface AppConfig {
       };
   errorTracking: { provider: "none" } | { provider: "sentry"; dsn: string };
   demo: { oneClickLogin: boolean; lockRiskySettings: boolean; resetCron: string | null };
+  /** What a successful mutating admin request that wrote no audit entry does: fail with 500, or log an error. */
+  auditEnforcement: "throw" | "log";
   modules: Record<string, Record<string, unknown>>;
   branding: StoreConfigInput["branding"];
   locale: StoreConfigInput["locale"];

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src";
-import { base, catchError, store } from "./fixtures";
+import { base, catchError, prod, store } from "./fixtures";
 
 describe("loadConfig", () => {
   it("applies development defaults", () => {
@@ -38,6 +38,14 @@ describe("loadConfig", () => {
     const c = loadConfig({ env: { ...base, APP_ENV: "development", PORT: "5000", LOG_LEVEL: "warn" }, store });
     expect(c.port).toBe(5000);
     expect(c.logLevel).toBe("warn");
+  });
+  it("throws on missing audit entries everywhere except production, where it logs", () => {
+    const mode = (APP_ENV: string, extra: Record<string, string> = {}) =>
+      loadConfig({ env: { ...base, ...extra, APP_ENV }, store }).auditEnforcement;
+    expect(mode("demo")).toBe("throw");
+    expect(mode("development")).toBe("throw");
+    expect(mode("staging", prod)).toBe("throw");
+    expect(mode("production", prod)).toBe("log");
   });
   it("formats the message as path: message lines", () =>
     expect(catchError(() => loadConfig({ env: { APP_ENV: "development" }, store })).message).toMatch(/DATABASE_URL: .+/));

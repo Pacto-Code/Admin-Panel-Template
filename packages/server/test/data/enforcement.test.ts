@@ -48,9 +48,9 @@ class AuditTestController {
 @Module({ controllers: [AuditTestController] })
 class AuditTestModule {}
 
-async function build(db: Db, env: "development" | "production", logStream?: Writable) {
+async function build(db: Db, auditEnforcement: "throw" | "log", logStream?: Writable) {
   const app = await createApp({
-    config: makeConfig({ env, logLevel: "error" }),
+    config: makeConfig({ auditEnforcement, logLevel: "error" }),
     db,
     jobs: "inline",
     modules: [AuditTestModule],
@@ -77,14 +77,14 @@ const logLines: string[] = [];
 beforeAll(async () => {
   const t = await createTestDatabase([platformMigrations]);
   drop = t.drop;
-  dev = await build(t.db, "development");
+  dev = await build(t.db, "throw");
   const sink = new Writable({
     write(chunk, _enc, cb) {
       logLines.push(String(chunk));
       cb();
     },
   });
-  prod = await build(t.db, "production", sink);
+  prod = await build(t.db, "log", sink);
   as = actingAs(dev);
   asProd = actingAs(prod);
 });
@@ -108,7 +108,7 @@ describe("AuditEnforcementInterceptor", () => {
     expect((await as(owner).get(`${A}/read`)).status).toBe(200);
     expect((await as(owner).post("/api/v1/test/outside-admin")).status).toBe(201);
   });
-  it("logs instead of failing in production", async () => {
+  it("logs instead of failing when auditEnforcement is log", async () => {
     expect((await asProd(owner).post(`${A}/silent`)).status).toBe(201);
     expect(logLines.join("")).toContain("wrote no audit entry");
   });

@@ -40,13 +40,17 @@ export class EventBus {
    * transaction, so concurrent callers never take the same row. If an enqueue fails the transaction
    * rolls back and the whole batch stays pending for the next call: no event is lost. Rows enqueued
    * before the failure are enqueued again then, which at-least-once delivery already allows.
+   *
+   * Once enqueued, the row is done and the job queue owns the event: under pg-boss a failing job is
+   * retried with backoff and finally parked in `platform.events.dead`, never dropped. Delivery is
+   * at-least-once up to that dead letter, and no ordering between events is guaranteed.
    */
   async dispatchPending(): Promise<number> {
     let total = 0;
     for (;;) {
       const sent = await this.db.transaction(async (tx) => {
         const claimed = await tx.execute<{ id: string; name: string; payload: unknown }>(sql`
-          update platform_outbox set dispatched_at = now()
+          update platform_outbox set dispatched_at = now(), updated_at = now()
           where id in (
             select id from platform_outbox where dispatched_at is null
             order by id limit ${BATCH} for update skip locked

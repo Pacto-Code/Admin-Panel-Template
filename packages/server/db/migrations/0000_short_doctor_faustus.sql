@@ -3,6 +3,7 @@ CREATE TABLE "platform_outbox" (
 	"name" text NOT NULL,
 	"payload" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"dispatched_at" timestamp with time zone
 );
 --> statement-breakpoint

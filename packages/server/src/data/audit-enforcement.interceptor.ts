@@ -39,7 +39,7 @@ export class AuditEnforcementInterceptor implements NestInterceptor {
       tap(() => {
         if (ctx.auditCount > 0) return;
         const message = `${req.method} ${req.path} changed data but wrote no audit entry; use MutationRunner or @NoAudit(reason)`;
-        if (this.config.env !== "production") throw new AppError("server.internal", 500, message);
+        if (this.config.auditEnforcement === "throw") throw new AppError("server.internal", 500, message);
         (req as { log?: { error(m: string): void } }).log?.error(message);
       }),
     );

@@ -46,6 +46,7 @@ export function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     adminUrl: "http://localhost:3000",
     session: { secret: "test-session-secret-test-session-secret", cookieName: "sid", idleHours: 12, absoluteDays: 7 },
     demo: { oneClickLogin: false, lockRiskySettings: false, resetCron: null },
+    auditEnforcement: "throw",
     errorTracking: { provider: "none" },
     ...overrides,
   } as AppConfig;

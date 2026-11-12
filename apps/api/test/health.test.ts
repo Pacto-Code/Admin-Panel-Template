@@ -13,6 +13,7 @@ it("serves health from the platform module through createApp", async () => {
     adminUrl: "http://localhost:3000",
     errorTracking: { provider: "none" },
     demo: { oneClickLogin: false, lockRiskySettings: false, resetCron: null },
+    auditEnforcement: "throw",
   } as AppConfig;
   const app = await createApp({ config, db: {} as Db, modules: [AppModule], jobs: "inline" });
   await app.init();

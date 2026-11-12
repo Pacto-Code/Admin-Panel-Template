@@ -10,6 +10,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "db:generate": "tsx tools/db-generate/index.ts",
+    "db:generate:platform": "drizzle-kit generate --dialect postgresql --schema packages/server/db/schema.ts --out packages/server/db/migrations",
     "modules:sync": "tsx tools/modules-sync/src/run.ts"
   },
   "devDependencies": {
