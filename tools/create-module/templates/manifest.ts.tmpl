@@ -1,0 +1,8 @@
+import { defineManifest } from "@platform/core";
+
+export const manifest = defineManifest({
+  id: "{{id}}",
+  name: "{{name}}",
+  permissions: [{ key: "{{id}}.item.read", label: "View {{name}} items" }],
+  nav: [{ label: "{{name}}", path: "/{{id}}", icon: "list", permission: "{{id}}.item.read", order: 100 }],
+});

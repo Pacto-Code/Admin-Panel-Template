@@ -168,6 +168,9 @@ importers:
       '@sentry/node':
         specifier: ^11.12.0
         version: 11.12.0(rollup@4.68.2)
+      '@types/supertest':
+        specifier: ^7.2.1
+        version: 7.2.1
       drizzle-orm:
         specifier: ^0.45.4
         version: 0.45.4(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)
@@ -195,6 +198,12 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      supertest:
+        specifier: ^7.3.2
+        version: 7.3.2
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@opentelemetry/api@1.10.0)(@types/node@26.6.6)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(tsx@4.23.15))
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -205,12 +214,15 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
-      '@types/supertest':
-        specifier: ^7.2.1
-        version: 7.2.1
-      supertest:
-        specifier: ^7.3.2
-        version: 7.3.2
+      create-module:
+        specifier: workspace:*
+        version: link:../../tools/create-module
+
+  tools/create-module:
+    devDependencies:
+      '@platform/vitest-preset':
+        specifier: workspace:*
+        version: link:../vitest-preset
 
   tools/lint-tests:
     devDependencies:

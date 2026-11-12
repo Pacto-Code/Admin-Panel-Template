@@ -1,7 +1,6 @@
 import "reflect-metadata";
-import { Controller, Get, Injectable, Module, Post } from "@nestjs/common";
+import { Controller, Get, Module, Post } from "@nestjs/common";
 import type { INestApplication } from "@nestjs/common";
-import type { Request } from "express";
 import request from "supertest";
 import type { Db } from "@platform/db";
 import {
@@ -14,36 +13,9 @@ import {
   RequirePermission,
   createApp,
   requestContext,
-  type Actor,
-  type Authenticator,
-  type PermissionResolver,
 } from "../../src";
+import { FakeAccess, TEST_ACTOR_HEADER, type TestActor } from "../../src/testing";
 import { makeConfig } from "../fixtures";
-
-export interface TestUser {
-  userId?: string;
-  permissions: string[];
-}
-
-/** Reads `x-test-user` (JSON) as the session. Doubles as the permission resolver. */
-@Injectable()
-export class FakeAccess implements Authenticator, PermissionResolver {
-  private readonly users = new Map<string, string[]>();
-  async authenticate(req: Request): Promise<Actor | null> {
-    const raw = req.header("x-test-user");
-    if (!raw) return null;
-    const u = JSON.parse(raw) as TestUser;
-    const userId = u.userId ?? "u-default";
-    this.users.set(userId, u.permissions);
-    return { userId, email: `${userId}@example.com`, sessionId: `s-${userId}` };
-  }
-  async resolve(userId: string) {
-    return { permissions: this.users.get(userId) ?? [], roleKeys: [] };
-  }
-  async usersWithPermission(key: string) {
-    return [...this.users].filter(([, p]) => p.includes(key)).map(([id]) => id);
-  }
-}
 
 @Controller("test")
 export class SecurityController {
@@ -115,14 +87,13 @@ export async function buildApp(db: Db, profile: "demo" | "dev") {
 export function actingAs(app: INestApplication) {
   const http = request(app.getHttpServer());
   const csrf = app.get(CsrfService);
-  return (user: TestUser, opts: { csrf?: boolean } = {}) => {
-    const userId = user.userId ?? "u-default";
+  return (user: TestActor, opts: { csrf?: boolean } = {}) => {
     const json = JSON.stringify(user);
     return {
-      get: (url: string) => http.get(url).set("x-test-user", json),
+      get: (url: string) => http.get(url).set(TEST_ACTOR_HEADER, json),
       post: (url: string) => {
-        const r = http.post(url).set("x-test-user", json);
-        return opts.csrf === false ? r : r.set("x-csrf-token", csrf.tokenFor(`s-${userId}`));
+        const r = http.post(url).set(TEST_ACTOR_HEADER, json);
+        return opts.csrf === false ? r : r.set("x-csrf-token", csrf.tokenFor(FakeAccess.identify(user).sessionId));
       },
     };
   };

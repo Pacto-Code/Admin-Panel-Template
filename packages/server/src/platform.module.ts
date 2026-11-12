@@ -67,6 +67,8 @@ export class PlatformModule {
         JobsService,
         EventBus,
         MutationRunner,
+        // Supplied providers (e.g. MAILER) are injectable everywhere too.
+        ...(opts.providers ?? []).map((p) => (typeof p === "function" ? p : p.provide)),
       ],
     };
   }

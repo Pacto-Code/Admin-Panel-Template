@@ -7,3 +7,4 @@ dist
 !.env.*.example
 .superpowers/
 *.tsbuildinfo
+packages/server/test/.fixtures/

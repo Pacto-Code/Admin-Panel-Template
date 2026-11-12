@@ -14,8 +14,9 @@ import {
   createApp,
 } from "../../src";
 import { platformMigrations } from "../../db";
+import { FakeAccess } from "../../src/testing";
 import { makeConfig } from "../fixtures";
-import { actingAs, FakeAccess } from "../security/fixtures";
+import { actingAs } from "../security/fixtures";
 
 @Authenticated()
 @Controller()

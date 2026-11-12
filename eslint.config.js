@@ -1,7 +1,7 @@
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/node_modules/**", "**/dist/**", "**/.turbo/**", "**/.next/**", "**/.data/**"] },
+  { ignores: ["**/node_modules/**", "**/dist/**", "**/.turbo/**", "**/.next/**", "**/.data/**", "packages/server/test/.fixtures/**"] },
   ...tseslint.configs.recommended,
   {
     files: ["**/*.{ts,tsx,js,mjs}"],

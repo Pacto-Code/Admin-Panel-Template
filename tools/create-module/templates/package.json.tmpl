@@ -1,0 +1,25 @@
+{
+  "name": "@modules/{{id}}",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./manifest": "./manifest.ts",
+    "./api": "./api/index.ts",
+    "./admin": "./admin/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run --config ../../tools/vitest-preset/module.config.ts",
+    "typecheck": "tsc --noEmit -p ../tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "^12.4.2",
+    "@platform/core": "workspace:*",
+    "@platform/db": "workspace:*",
+    "@platform/server": "workspace:*",
+    "drizzle-orm": "^0.45.4"
+  },
+  "devDependencies": {
+    "@platform/vitest-preset": "workspace:*"
+  }
+}

@@ -11,7 +11,8 @@
     "test": "turbo run test",
     "db:generate": "tsx tools/db-generate/index.ts",
     "db:generate:platform": "drizzle-kit generate --dialect postgresql --schema packages/server/db/schema.ts --out packages/server/db/migrations",
-    "modules:sync": "tsx tools/modules-sync/src/run.ts"
+    "modules:sync": "tsx tools/modules-sync/src/run.ts",
+    "create:module": "tsx tools/create-module/src/run.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

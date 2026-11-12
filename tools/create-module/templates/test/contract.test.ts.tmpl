@@ -1,0 +1,9 @@
+import { join } from "node:path";
+import { describeModuleContract } from "@platform/server/testing";
+import { apiModule } from "../api";
+import { manifest } from "../manifest";
+
+describeModuleContract({
+  module: { id: manifest.id, manifest, apiModule, migrationsFolder: join(import.meta.dirname, "../db/migrations") },
+  dependencies: [],
+});

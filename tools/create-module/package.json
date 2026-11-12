@@ -1,0 +1,16 @@
+{
+  "name": "create-module",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./scaffold": "./src/scaffold.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@platform/vitest-preset": "workspace:*"
+  }
+}

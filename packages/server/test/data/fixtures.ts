@@ -5,15 +5,10 @@ import { vi } from "vitest";
 import type { Db, Tx } from "@platform/db";
 import { createTestDatabase } from "@platform/db/testing";
 import { platformMigrations } from "../../db";
-import { AUDIT_RECORDER, OnEvent, createApp, type AuditEntryInput, type AuditRecorder } from "../../src";
+import { AUDIT_RECORDER, OnEvent, createApp, type AuditRecorder } from "../../src";
 import { makeConfig } from "../fixtures";
 
-export class FakeRecorder implements AuditRecorder {
-  entries: AuditEntryInput[] = [];
-  async record(_tx: Tx, entry: AuditEntryInput) {
-    this.entries.push(entry);
-  }
-}
+export { FakeRecorder } from "../../src/testing";
 
 /** Receives `t.thing.renamed`; `calls` is shared so tests can assert deliveries. */
 @Injectable()

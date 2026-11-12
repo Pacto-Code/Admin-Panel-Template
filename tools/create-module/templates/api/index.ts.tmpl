@@ -1,0 +1,38 @@
+import { Controller, Get, Inject, Module, Query } from "@nestjs/common";
+import { asc, count, desc, isNull } from "drizzle-orm";
+import type { Db } from "@platform/db";
+import { DB, RequirePermission, parseListQuery, type Paginated } from "@platform/server";
+import { {{camel}}Items } from "../db/schema";
+
+type Item = typeof {{camel}}Items.$inferSelect;
+
+const sortable = { name: {{camel}}Items.name, createdAt: {{camel}}Items.createdAt };
+
+@Controller("admin/{{id}}/items")
+export class {{pascal}}ItemsController {
+  constructor(@Inject(DB) private readonly db: Db) {}
+
+  @RequirePermission("{{id}}.item.read")
+  @Get()
+  async list(@Query() query: unknown): Promise<Paginated<Item>> {
+    const q = parseListQuery(query, { sortable: Object.keys(sortable), filterable: [], defaultSort: "-createdAt" });
+    const live = isNull({{camel}}Items.deletedAt);
+    const orderBy = q.sort.map((s) => (s.dir === "asc" ? asc : desc)(sortable[s.field as keyof typeof sortable]));
+    const [data, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from({{camel}}Items)
+        .where(live)
+        .orderBy(...orderBy)
+        .limit(q.pageSize)
+        .offset((q.page - 1) * q.pageSize),
+      this.db.select({ total: count() }).from({{camel}}Items).where(live),
+    ]);
+    return { data, total, page: q.page, pageSize: q.pageSize };
+  }
+}
+
+@Module({ controllers: [{{pascal}}ItemsController] })
+export class {{pascal}}ApiModule {}
+
+export const apiModule = {{pascal}}ApiModule;
